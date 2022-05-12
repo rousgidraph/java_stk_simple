@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import okhttp3.OkHttpClient;
+import org.apache.tomcat.jni.Time;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -16,6 +17,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.Date;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
@@ -28,7 +33,7 @@ import static org.mockito.Mockito.when;
 class DarajaServiceImplTest {
 
     @Mock
-     MpesaConfigurations configs;
+    MpesaConfigurations configs;
 
     @InjectMocks
     static DarajaServiceImpl service;
@@ -47,13 +52,14 @@ class DarajaServiceImplTest {
 
     @BeforeAll
     public static void startServer() {
+
         objectMapper = new ObjectMapper();
         okHttpClient = new OkHttpClient();
         service = new DarajaServiceImpl();
         server = new WireMockServer(wireMockConfig().bindAddress(host).port(port));
         server.start();
         WireMock.configureFor(host,port);
-
+        setUpServer();
     }
 
     @AfterAll
@@ -62,14 +68,37 @@ class DarajaServiceImplTest {
     }
 
 
-
-    @Test
-    void getAccess() throws IOException {
+    static void  setUpServer(){
         stubFor(get(urlEqualTo("/auth?grant_type=client_credentials"))
                 .willReturn(aResponse()
                         .withStatus(200)
                         .withBody("{\"access_token\": \"WERTYUIOPLKVBN\",\"expires_in\": \"56\"}")));
 
+
+
+
+    }
+
+    @Test
+    void timeDiffrenceTest(){
+        LocalDateTime start = LocalDateTime.now();
+
+        when(configs.getConsumerKey()).thenReturn("kAg5pZcWJVfuFihVaSIXNwN170IeBIYY");
+        when(configs.getConsumerSecret()).thenReturn("ELLQw8YWcnvnwYVj");
+        when(configs.getOauthEndpoint()).thenReturn("http://localhost:8090/auth");
+        when(configs.getGrantType()).thenReturn("client_credentials");
+        System.out.println();
+
+
+        AccessToken sample = service.getAccess();
+        AccessToken exected = service.getAccess();
+
+        assertEquals(exected,sample);
+
+    }
+
+    @Test
+    void getAccess() throws IOException {
 
 
         AccessToken expected  = new AccessToken();
@@ -82,7 +111,7 @@ class DarajaServiceImplTest {
         when(configs.getGrantType()).thenReturn("client_credentials");
 
         AccessToken actual = service.getAccess();
-
+        expected.setAcquiredAt(actual.getAcquiredAt());
         assertEquals(expected,actual);
 
     }
@@ -100,12 +129,6 @@ class DarajaServiceImplTest {
          *
          * */
 
-        AccessToken useThis = new AccessToken();
-        useThis.setAccessToken("WERTYUIOPLKVBN");
-        useThis.setExpiresIn("56");
-
-        stubFor(post("")
-                .withHeader("authorization", equalTo("Bearer "+useThis.getAccessToken())));
 
 
     }

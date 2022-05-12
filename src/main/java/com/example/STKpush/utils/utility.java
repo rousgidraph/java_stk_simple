@@ -6,16 +6,23 @@ import lombok.extern.slf4j.Slf4j;
 import org.bson.internal.Base64;
 import org.apache.commons.text.CharacterPredicates;
 import org.apache.commons.text.RandomStringGenerator;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 @Slf4j
+
 public class utility {
 
     /**
      * This class helps with the various conversions that might need to be done
      * **/
+
+    @Autowired
+    static ObjectMapper mapper;
 
 
     public static String getStkPushPassword(String shortCode, String passKey, String timestamp) {
@@ -49,7 +56,7 @@ public class utility {
 
     public static String getTransactionTimestamp() {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
-        return dateFormat.format(new Date());
+            return dateFormat.format(new Date());
     }
 
 }

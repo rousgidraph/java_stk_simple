@@ -14,6 +14,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.sql.Time;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.Objects;
 
 import static com.example.STKpush.utils.CONSTANTS.*;
@@ -30,6 +35,7 @@ public class DarajaServiceImpl implements DarajaService{
     @Autowired
     OkHttpClient okHttpClient;
 
+    private AccessToken tokenExist = null;
     /*
     public DarajaServiceImpl (MpesaConfigurations configg, ObjectMapper mapp, OkHttpClient oKK){
         this.configs = configg;
@@ -37,7 +43,7 @@ public class DarajaServiceImpl implements DarajaService{
         this.okHttpClient = oKK;
 
     }*/
-
+//sample bookmark
 
     @Override
     public AccessToken getAccess() {
@@ -57,11 +63,34 @@ public class DarajaServiceImpl implements DarajaService{
                 .addHeader(CACHE_CONTROL_HEADER,CACHE_CONTROL_HEADER_VALUE)
                 .build();
 
+        /**
+         * optimisation : Check if there's a valid token available
+         * */
+
+        if(tokenExist != null){
+            //time check logic
+            LocalDateTime atTheMoment = LocalDateTime.now();
+            //testing
+            atTheMoment =  atTheMoment.plusHours(1);
+            Duration difference = Duration.between(tokenExist.getAcquiredAt(),atTheMoment);
+            Long diff = Math.abs(difference.toSeconds());
+            Long diff_mills = Math.abs(difference.toMillis());
+            log.info("The time since last token call "+diff+" time in millis : "+diff_mills);
+            if(diff < Long.valueOf(tokenExist.getExpiresIn())){
+                return tokenExist;
+            }
+        }
+
+
 
         try {
             Response response = okHttpClient.newCall(request).execute();
             assert response.body() != null;
-            return objectMapper.readValue(response.body().string(), AccessToken.class);
+            String holder = response.body().string();
+            AccessToken returnable = objectMapper.readValue(holder, AccessToken.class);
+            returnable.setAcquiredAt(LocalDateTime.now());
+            tokenExist = returnable;
+            return tokenExist;
 
         }catch (IOException e ){
             log.error(String.format("Could not get access token. -> %s", e.getLocalizedMessage()));
